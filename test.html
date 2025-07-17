@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+  <input id="name" placeholder="名前" />
+  <input id="score" placeholder="スコア" />
+  <button id="sendBtn">送信</button>
+
+  <script>
+    const url = 'あなたのGASのWebアプリURL';
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      const playerName = document.getElementById('name').value;
+      const score = Number(document.getElementById('score').value);
+      fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({playerName, score})
+      })
+      .then(res => res.text())
+      .then(text => alert('送信結果: ' + text))
+      .catch(err => alert('エラー: ' + err));
+    });
+  </script>
+</body>
+</html>

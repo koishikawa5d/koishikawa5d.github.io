@@ -188,6 +188,7 @@
     }
 
     function endGame() {
+      submitScore(playerName, score);
       clearInterval(gameInterval);
       clearInterval(spawnInterval);
       gameOverMessage.style.display = 'block';
@@ -197,6 +198,26 @@
       updateObjects();
       speed += 0.002;
     }
+
+    function submitScore(playerName, score) {
+      const data = { playerName, score };
+
+      fetch('https://script.google.com/macros/s/AKfycbwihTXHZs9zNClZz3sY4QOjcOweRW1_wEk4wmLFKRAF56NzSQfRX5cBXHkKJ0mXkQPX/exec', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(res => res.text())
+        .then(response => {
+          console.log("送信成功:", response);
+        })
+        .catch(err => {
+          console.error("送信失敗:", err);
+        });
+    }
+
 
     // ゲームスタート処理は名前入力後に行う
     // gameInterval = setInterval(gameLoop, 20);
