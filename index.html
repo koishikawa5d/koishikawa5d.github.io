@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>赤血球ゲーム</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: #ffe6e6;
+      font-family: sans-serif;
+    }
+    #scoreboard {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      margin: 10px;
+      gap: 20px;
+    }
+    #hpContainer {
+      display: flex;
+      gap: 5px;
+    }
+    .hpDot {
+      width: 20px;
+      height: 20px;
+      background: red;
+      border-radius: 50%;
+    }
+    #gameArea {
+      position: relative;
+      width: 90vw;
+      height: 90vh;
+      margin: 0 auto;
+      background: linear-gradient(to right, #ffcccc 0%, #ffe6e6 100%);
+      border: 5px solid #cc0000;
+    }
+    .laneLine {
+      position: absolute;
+      width: 100%;
+      height: 1px;
+      background-color: white;
+    }
+    .object {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+    }
+    .oxygen {
+      background: blue;
+    }
+    .virus {
+      background: red;
+      border-radius: 50%;
+    }
+    .player {
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-bottom: 30px solid yellow;
+      position: absolute;
+    }
+    #gameOverMessage {
+      z-index: 9999;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      color: red;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="namePrompt" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #cc0000; z-index: 10000;">
+    <label for="playerName">名前を入力してください：</label>
+    <input type="text" id="playerName" />
+    <button id="startButton">ゲームスタート</button>
+  </div>
+  <div id="scoreboard">
+    <div id="hpContainer"></div>
+    <div>スコア: <span id="score">0</span></div>
+  </div>
+  <div id="gameArea">
+    <div id="player" class="player"></div>
+    <div id="gameOverMessage">ゲームオーバー！</div>
+  </div>
+
+  <script>
+    let playerName = '';
+    const gameArea = document.getElementById('gameArea');
+    const player = document.getElementById('player');
+    const hpContainer = document.getElementById('hpContainer');
+    const scoreDisplay = document.getElementById('score');
+    const gameOverMessage = document.getElementById('gameOverMessage');
+
+    const laneCount = 4;
+    let gameHeight = gameArea.clientHeight;
+    let laneHeight = gameHeight / laneCount;
+    let lanes = Array.from({length: laneCount}, (_, i) => i * laneHeight + laneHeight / 2 - 15);
+
+    for (let i = 1; i < laneCount; i++) {
+      const line = document.createElement('div');
+      line.className = 'laneLine';
+      line.style.top = `${i * laneHeight}px`;
+      gameArea.appendChild(line);
+    }
+
+    let currentLane = 1;
+    let hp = 3;
+    let score = 0;
+    let speed = 2;
+    const baseSpeed = 2;
+    let gameInterval;
+    let spawnInterval;
+
+    function updateHPDisplay() {
+      hpContainer.innerHTML = '';
+      for (let i = 0; i < hp; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'hpDot';
+        hpContainer.appendChild(dot);
+      }
+    }
+
+    updateHPDisplay();
+
+    player.style.left = '50px';
+    player.style.top = lanes[currentLane] + 'px';
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' && currentLane > 0) {
+        currentLane--;
+      } else if (e.key === 'ArrowDown' && currentLane < laneCount - 1) {
+        currentLane++;
+      }
+      player.style.top = lanes[currentLane] + 'px';
+    });
+
+    gameArea.addEventListener('click', (e) => {
+      const rect = gameArea.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const clickedLane = Math.floor(y / laneHeight);
+      if (clickedLane >= 0 && clickedLane < laneCount) {
+        currentLane = clickedLane;
+        player.style.top = lanes[currentLane] + 'px';
+      }
+    });
+
+    function spawnObject() {
+      const type = Math.random() < 0.7 ? 'oxygen' : 'virus';
+      const obj = document.createElement('div');
+      obj.classList.add('object', type);
+      obj.style.top = (lanes[Math.floor(Math.random() * laneCount)] - 15) + 'px';
+      obj.style.left = (gameArea.clientWidth - 30) + 'px';
+      gameArea.appendChild(obj);
+    }
+
+    function updateObjects() {
+      const objects = document.querySelectorAll('.object');
+      objects.forEach(obj => {
+        let left = parseFloat(obj.style.left);
+        left -= speed;
+        obj.style.left = left + 'px';
+
+        const objTop = parseFloat(obj.style.top);
+        if (left <= 65 && left >= 35 && Math.abs(objTop - lanes[currentLane]) < laneHeight / 2) {
+          if (obj.classList.contains('oxygen')) {
+            score++;
+            scoreDisplay.textContent = score;
+          } else if (obj.classList.contains('virus')) {
+            hp--;
+            speed = baseSpeed;
+            updateHPDisplay();
+            if (hp <= 0) endGame();
+          }
+          obj.remove();
+        }
+
+        if (left <= 0) obj.remove();
+      });
+    }
+
+    function endGame() {
+      clearInterval(gameInterval);
+      clearInterval(spawnInterval);
+      gameOverMessage.style.display = 'block';
+    }
+
+    function gameLoop() {
+      updateObjects();
+      speed += 0.002;
+    }
+
+    // ゲームスタート処理は名前入力後に行う
+    // gameInterval = setInterval(gameLoop, 20);
+    // spawnInterval = setInterval(spawnObject, 700);
+  document.getElementById('startButton').addEventListener('click', () => {
+      const nameInput = document.getElementById('playerName').value.trim();
+      if (nameInput !== '') {
+        playerName = nameInput;
+        document.getElementById('namePrompt').style.display = 'none';
+        gameInterval = setInterval(gameLoop, 20);
+        spawnInterval = setInterval(spawnObject, 700);
+      } else {
+        alert('名前を入力してください');
+      }
+    });
+  </script>
+</body>
+</html>
